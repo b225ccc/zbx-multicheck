@@ -298,12 +298,8 @@ while (my ($command, $items) = each(%$multiconfig)) {
     open (ZABBIX_SENDER_FILE, '>', $tmp_file);
 
     while (my ($key,$value) = each(%result_hash)) {
-	my $item = $item_basename . "[" . $key . "]";
-#	my $send_cmd2 = "$sender_bin --zabbix-server $zbx_config->{servername} --port $zbx_config->{serverport} --host $zbx_config->{hostname} --key '$item' --value '$value'";
-#	debug("   = Send command is : $send_cmd2");
-#	`$send_cmd2` if (!$debug);
-
-	print ZABBIX_SENDER_FILE "- $item $timestamp $value\n";
+        my $item = $item_basename . "[" . $key . "]";
+        print ZABBIX_SENDER_FILE "- $item $timestamp $value\n";
     }
 
     close (ZABBIX_SENDER_FILE);
@@ -312,11 +308,9 @@ while (my ($command, $items) = each(%$multiconfig)) {
     debug("   = Send command is : $send_cmd");
     `$send_cmd` if (!$debug);
     if (!$debug) {
-	my @sender_results = `$send_cmd`;
-	#print(@sender_results);
-	Dumper(@sender_results);
+        my @sender_results = `$send_cmd`;
+        #Dumper(@sender_results);
     }
-
 
     debug("==== End output parsing ====");
 }
