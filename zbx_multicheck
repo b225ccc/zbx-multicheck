@@ -306,11 +306,14 @@ while (my ($command, $items) = each(%$multiconfig)) {
 
     my $send_cmd = "$sender_bin --zabbix-server $zbx_config->{servername} --port $zbx_config->{serverport} --host $zbx_config->{hostname} -T -i $tmp_file";
     debug("   = Send command is : $send_cmd");
-    `$send_cmd` if (!$debug);
+
     if (!$debug) {
         my @sender_results = `$send_cmd`;
         #Dumper(@sender_results);
     }
+
+    # remove tmp file
+    unlink($tmp_file);
 
     debug("==== End output parsing ====");
 }
