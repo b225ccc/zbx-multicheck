@@ -47,6 +47,8 @@ my $default_server = "127.0.0.1";
 my $default_sport = "10051";
 my $sender_bin = "/usr/bin/zabbix_sender";
 
+# system directory for staging zabbix_sender data
+my $tmp_dir = "/tmp/";
 #----------------------------------------------
 # Do not change anything below this line
 # ---------------------------------------------
@@ -61,6 +63,10 @@ my $show_version = 0;
 my $hostname = undef; # First parameter of the command line arguments
 my $zbx_config;
 
+my $timestamp = time();
+my $tmp_id = $timestamp . int(rand(1000));
+my $tmp_file = $tmp_dir . 'zbx_multicheck_' . $tmp_id;
+
 # Print debug messages, only if $debug > 0
 sub debug {
     return if !$debug;
@@ -73,7 +79,7 @@ sub debug {
     my $subroutine_name = $info[3] || "main";
     
     foreach my $line (split(/\n/, $msg)) {
-	chomp($line);
+    chomp($line);
         print STDERR "DEBUG: ($subroutine_name) $line\n";
     }
 }
@@ -92,15 +98,15 @@ sub parse_agentd_conf {
     debug("Parsing main Zabbix Agentd configuration file '$conffile'");
     open (my $fh, "<$conffile") or die "ERROR: Can't open Zabbix agentd's configuration file '$conffile'";
     while (<$fh>) {
-	$server = $1 if (m/^\s*Server\s*=\s*([^\s,]*)/);
-	$sport = $1 if (m/^\s*ServerPort\s*=\s*(.*)/);
-	$hostname = $1 if (m/^\s*Hostname\s*=\s*(.*)/);
+    $server = $1 if (m/^\s*Server\s*=\s*([^\s,]*)/);
+    $sport = $1 if (m/^\s*ServerPort\s*=\s*(.*)/);
+    $hostname = $1 if (m/^\s*Hostname\s*=\s*(.*)/);
     }
     close($fh);
 
     # Hostname must be defined, we can't guess a default value
     if (!defined($hostname)) {
-	die("ERROR: Hostname must be defined in the Zabbix Agentd configuration file");
+    die("ERROR: Hostname must be defined in the Zabbix Agentd configuration file");
     }
 
     my $result = {"hostname" => $hostname, "servername" => $server, "serverport" => $sport};
@@ -124,8 +130,8 @@ sub parse_server_conf {
     debug("Parsing main Zabbix Server configuration file '$conffile'");
     open (my $fh, "<$conffile") or die "ERROR: Can't open Zabbix server's configuration file '$conffile'";
     while (<$fh>) {
-	$server = $1 if (m/^\s*ListenIP\s*=\s*([^\s,]*)/);
-	$sport = $1 if (m/^\s*ListenPort\s*=\s*(.*)/);
+    $server = $1 if (m/^\s*ListenIP\s*=\s*([^\s,]*)/);
+    $sport = $1 if (m/^\s*ListenPort\s*=\s*(.*)/);
     }
     close($fh);
 
@@ -168,36 +174,37 @@ sub parse_multichecker_conf {
     debug("Parsing Multichecker configuration file '$conffile'");
     open (my $fh, "<$conffile") or die "ERROR: Can't open Zabbix Multichecker's configuration file '$conffile'";
     while (<$fh>) {
-	chomp;
-	if (m/^\s*(#|$)/) {
-	    # Comment or blank line
-	    next;
-	} elsif (m/^\s*command\s*=\s*(.*)\s*$/) {
-	    # Parse command line, which must only be defined once
-	    $command = $1;
-	    if (exists($commands->{$command})) {
-		die("ERROR: Command line '$command' redefined in multichecker configuration file '$conffile'");
-	    }
-	    $commands->{$command} = {};
-	} elsif (m/^\s*item\s*=\s*\/(.*)\/\s*,\s*([[:alnum:]._-]+)\s*$/) {
-	    # Parse regexp/item line
-	    if (!defined($command)) {
-		die("ERROR: Item '$_' found before command definition in multichecker configuration file '$conffile'");
-	    }
-	    $commands->{$command}->{$1} = $2;
-	} else {
-	    # Unparseable line
-	    die "ERROR: Syntax error in multichecker configuration file '$conffile': \"$_\"";
-	}
+    chomp;
+    if (m/^\s*(#|$)/) {
+        # Comment or blank line
+        next;
+    } elsif (m/^\s*command\s*=\s*(.*)\s*$/) {
+        # Parse command line, which must only be defined once
+        $command = $1;
+        if (exists($commands->{$command})) {
+        die("ERROR: Command line '$command' redefined in multichecker configuration file '$conffile'");
+        }
+        $commands->{$command} = {};
+    } elsif (m/^\s*item\s*=\s*\/(.*)\/\s*,\s*([[:alnum:]._-]+)\s*$/) {
+        # Parse regexp/item line
+        if (!defined($command)) {
+        die("ERROR: Item '$_' found before command definition in multichecker configuration file '$conffile'");
+        }
+        $commands->{$command}->{$1} = $2;
+    } else {
+        # Unparseable line
+        die "ERROR: Syntax error in multichecker configuration file '$conffile': \"$_\"";
+    }
     }
     close($fh);
 
     if (!scalar($commands)) {
-	die "ERROR: Missing command and/or item lines in multichecker configuration file '$conffile'";
+    die "ERROR: Missing command and/or item lines in multichecker configuration file '$conffile'";
     }
 
     debug("Parse result = " . Dumper($commands));
     return $commands;
+
 }
 
 # Parse the command line
@@ -239,13 +246,13 @@ EOFHELP
 # Hostname must be provided
 if (! defined($hostname)) {
     pod2usage(-message => "ERROR: HOSTNAME must be the first argument",
-	-exitval => 3);
+    -exitval => 3);
 }
 
 # zabbix_sender must be available
 if (! -r $sender_bin) {
     pod2usage(-message => "ERROR: Invalid 'zabbix_sender' path '$sender_bin'",
-	-exitval => 3);
+    -exitval => 3);
 }
 
 # Parse the two configuration files
@@ -266,23 +273,51 @@ while (my ($command, $items) = each(%$multiconfig)) {
     # Remplace @HOSTNAME@ by the name of the server, if needed
     $command =~ s/\@HOSTNAME\@/$zbx_config->{hostname}/ge;
     debug("#### Executing '$command' ####");
-    my $result = `$command`;
+    my @result = `$command`;
     debug("==== Command result ====");
-    debug($result);
+    foreach (@result) { debug($_); }
     debug("==== End command result ====");
 
     # And now parse the output and compare to regular expressions
     debug("==== Parsing output and generating items ====");
-    while (my ($reg,$item) = each(%$items)) {
-	debug(" === Matching against '$reg' ===");
-	if ($result =~ m/$reg/m) {
-	    debug("  == Found a match! Setting the item '$item' to '$1' ==");
-	    # Now send the result back to the Zabbix Server
-	    my $send_cmd = "$sender_bin --zabbix-server $zbx_config->{servername} --port $zbx_config->{serverport} --host $zbx_config->{hostname} --key '$item' --value '$1'";
-	    debug("   = Send command is : $send_cmd");
-	    `$send_cmd` if (!$debug);
+
+    my ($item_regex,$item_basename) = each(%$items);
+    debug("item_regex = $item_regex\n");
+    debug("item_basename = $item_basename\n");
+
+    my %result_hash;
+    foreach my $line (@result) {
+	if ($line =~ m/$item_regex/) {
+		$result_hash{$1} = $2;	
 	}
+		
     }
+    debug("Parse result = " . Dumper(\%result_hash));
+
+    # if we're here, assume we'll have something to send to zabbix
+    open (ZABBIX_SENDER_FILE, '>', $tmp_file);
+
+    while (my ($key,$value) = each(%result_hash)) {
+	my $item = $item_basename . "[" . $key . "]";
+#	my $send_cmd2 = "$sender_bin --zabbix-server $zbx_config->{servername} --port $zbx_config->{serverport} --host $zbx_config->{hostname} --key '$item' --value '$value'";
+#	debug("   = Send command is : $send_cmd2");
+#	`$send_cmd2` if (!$debug);
+
+	print ZABBIX_SENDER_FILE "- $item $timestamp $value\n";
+    }
+
+    close (ZABBIX_SENDER_FILE);
+
+    my $send_cmd = "$sender_bin --zabbix-server $zbx_config->{servername} --port $zbx_config->{serverport} --host $zbx_config->{hostname} -T -i $tmp_file";
+    debug("   = Send command is : $send_cmd");
+    `$send_cmd` if (!$debug);
+    if (!$debug) {
+	my @sender_results = `$send_cmd`;
+	#print(@sender_results);
+	Dumper(@sender_results);
+    }
+
+
     debug("==== End output parsing ====");
 }
 
@@ -309,14 +344,14 @@ which we're running this script (as an External Script).
 
 Options:
 
- --agent-conf=FILE, -A FILE	Path to the Zabbix Agentd configuration file
- --server-conf=FILE, -C FILE	Path to the Zabbix Server configuration file
- --multichecker-conf=FILE, -M FILE	Path to zabbix_multichecker's configuration file
- --sender=FILE, -S FILE		Path of the zabbix_sender executable
- --debug, -d			Print more information (do not use in production!)
- --help|-h			Brief help message
- --version|-v			Print version and license
- --man				Full documentation
+ --agent-conf=FILE, -A FILE Path to the Zabbix Agentd configuration file
+ --server-conf=FILE, -C FILE    Path to the Zabbix Server configuration file
+ --multichecker-conf=FILE, -M FILE  Path to zabbix_multichecker's configuration file
+ --sender=FILE, -S FILE     Path of the zabbix_sender executable
+ --debug, -d            Print more information (do not use in production!)
+ --help|-h          Brief help message
+ --version|-v           Print version and license
+ --man              Full documentation
 
 =head1 OPTIONS
 
@@ -412,4 +447,3 @@ Author: Farzad FARID <ffarid@pragmatic-source.com>
 For more information or support check http://www.pragmatic-source.com/ .
 
 =cut
-
