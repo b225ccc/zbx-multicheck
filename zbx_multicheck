@@ -7,8 +7,8 @@
 # file is used to determind the commands to execute and the items to return
 # for each command.
 #
-# Date: 2007/05/25
-# Version: 2.0
+# Date: 2014/01/15
+# Version: 3.0
 #
 # Copyright (C) 2007 Farzad FARID <ffarid@pragmatic-source.com>
 #
@@ -50,7 +50,7 @@ my $sender_bin = "/usr/local/bin/zabbix_sender";
 #----------------------------------------------
 # Do not change anything below this line
 # ---------------------------------------------
-my $VERSION="2.0";
+my $VERSION="3.0";
 my $agentd_conf = $default_agentd_conf;
 my $server_conf = $default_server_conf;
 my $multichecker_conf = $default_multichecker_conf;
