@@ -45,7 +45,7 @@ my $default_multichecker_conf = "/etc/zabbix/zbx_multicheck.conf";
 # or are reasonnable defaults
 my $default_server = "127.0.0.1";
 my $default_sport = "10051";
-my $sender_bin = "/usr/local/bin/zabbix_sender";
+my $sender_bin = "/usr/bin/zabbix_sender";
 
 #----------------------------------------------
 # Do not change anything below this line
@@ -344,7 +344,7 @@ Defaults to 'F</etc/zabbix/zbx_multicheck.conf>'.
 
 =item B<--sender=I<FILE>|-S I<FILE>>
 
-Path of the C<zabbix_sender> executable. Defaults to 'F</usr/local/bin/zabbix_sender>'.
+Path of the C<zabbix_sender> executable. Defaults to 'F</usr/bin/zabbix_sender>'.
 
 =item B<--debug|-d>
 
