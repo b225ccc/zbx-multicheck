@@ -404,8 +404,11 @@ Sample F<zbx_multicheck.conf>:
 
 =head1 AUTHOR
 
-Author: Farzad FARID <ffarid@pragmatic-source.com>
+Fork:
+Author: Brian Talley <b225ccc@gmail.com>
 
+Original:
+Author: Farzad FARID <ffarid@pragmatic-source.com>
 For more information or support check http://www.pragmatic-source.com/ .
 
 =cut
